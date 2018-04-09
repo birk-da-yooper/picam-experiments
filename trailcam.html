@@ -1,0 +1,196 @@
+<HTML>
+<HEAD>
+  <TITLE>Birks Go-based Trailcam</TITLE>
+  <link rel="stylesheet" type="text/css" href="trailcam.css">
+  <script type="text/javascript" src="jquery.js"></script>
+</HEAD>
+<BODY onload="check_pwr();">
+
+<div class="whole_page_wrapper">
+  <div id='topbar'    class='topbar'></div>
+  <div id='topbar2'   class='topbar2'></div>
+  <div id='logo'      class='top_logo'>Welcome to Birks Golang Raspberry Pi Camera Interface
+                                    <BR>
+                                    Designed for watching wildlife, useful for most security surveillance</div>
+  <div id='left'      class='leftbar'></div>
+  <div id='power_btn' class='power_btn' onClick="toggle_pwr()">-</div>
+  <div id='curr_thumb' class='curr_thumb'>
+      <!-- must use pct scaling so to ensure image stays entirely within the area defined by this class -->
+      <img src="/archive/images/camera/pi_noir_cam/output.jpg" width=100% height=100% alt="always the latest test image" onClick="show_it('output.jpg')"/>
+  </div>
+  <div id='right'     class='rightbar'></div>
+  <div id='bottombar' class='bottombar'></div>
+
+  <div id='menu' class='images_menu'></div>
+
+  <div id='menu_img_1' class='menu_img_1'>latest saved image</div>
+  <div id='menu_img_2' class='menu_img_2'>for testing</div>
+  <div id='menu_img_3' class='menu_img_3'>captured motion</div>
+
+  <div id='images' class='images_area'>
+    <div id='image_row_1'>
+      <div id='image_1' class="image">
+        <img src="/archive/images/camera/pi_noir_cam/output.jpg" width=15% height=15% alt="always the latest test image" width=30% />
+      </div>
+      <BR><div onClick=load_image('image_1','/archive/images/camera/pi_noir_cam/output.jpg')>
+      <font size=+2>&#8635; </font>
+      </div>
+      <BR><BR>
+      <div id='image_2' class="image">
+       <img src="/archive/images/camera/pi_noir_cam/test_img_1001.jpg" width=15% height=15% alt="test image here" width=30% onClick="show_it()"/>
+      </div/archive/>
+      <BR>
+
+<!-- this is doing a new  line after each div block -->
+      <font size=+2>
+      <div onClick=load_offset_test_image('image_2',-10)>&#8647;</div>
+         &nbsp; &nbsp;
+          <div onClick=load_offset_test_image('image_2',-1)>&#9664;</div>
+      </font>
+      <font size=+1>
+         &nbsp; &nbsp; <div id="image_2_name"></div>&nbsp; &nbsp;
+      </font>
+      <font size=+2>
+          <div onClick=load_offset_test_image('image_2',1)>&#9654;</div>
+         &nbsp; &nbsp;
+          <div onClick=load_offset_test_image('image_2',10)>&#8649;</div>
+      </font>
+
+      <BR><BR>
+
+      <div id='image_3' class="image">
+       <img src="/archive/images/camera/pi_noir_cam/trailcam-20141230-002317_4.jpg" alt="most recent full image" width=30% onClick="show_it()"/>
+
+<!-- this is doing a new  line after each div block -->
+      <font size=+2>
+      <div onClick=load_offset_full_image('image_3',-10)>&#8647;</div>
+         &nbsp; &nbsp;
+          <div onClick=load_offset_full_image('image_3',-1)>&#9664;</div>
+      </font>
+      <font size=+1>
+         &nbsp; &nbsp; <div id="image_3_name"></div>&nbsp; &nbsp;
+      </font>
+      <font size=+2>
+          <div onClick=load_offset_full_image('image_3',1)>&#9654;</div>
+         &nbsp; &nbsp;
+          <div onClick=load_offset_full_image('image_3',10)>&#8649;</div>
+      </font>
+
+      <BR><BR>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+
+var status_check_timer = setInterval(function() { check_pwr(); }, 5000);
+//var clock_timer = setInterval(function() { show_time(); }, 1000);
+
+var pwr_status = { 1: 'ON', 0: 'OFF'};
+
+var images_dir           = "/archive/images/camera/pi_noir_cam/";
+var test_image_index     = 1000;
+var curr_full_image_name = '';
+
+function show_it (image) {
+
+    if ( ! image ) { return; }
+
+    var popup_window = window.open(images_dir + image, '', 'scrollbars=yes, resizable=yes');
+}
+
+function load_image(where, image) {
+
+    where = '#' + where;
+    //$(where).innerHTML('<img src="' + image + '" width=15% height=15% alt="always the latest test image" width=30% />');
+    $(where).html('<img src="' + image + '" width=15% height=15% alt="always the latest test image" width=30% />');
+}
+
+function load_offset_test_image(where, offset) {
+
+    where = '#' + where;
+
+    if ( ! offset ) { offset = 0; }
+
+    test_image_index += offset;
+
+    var image = "test_img_" + test_image_index + ".jpg";
+    var reviewer = 'onClick="show_it(' + "'" +  image + "');" + '"';
+    $(where).html('<img src="' + images_dir + image + '" width=30% height=30% alt="test image here" ' + reviewer + ' />');
+    $(where + '_name').html(image );
+}
+
+function load_offset_full_image(where, offset) {
+
+    where = '#' + where;
+
+    if ( ! offset ) { offset = 0; }
+
+    // not strictly sequential, so call to find out what it is
+
+    var url = 'http://10.10.1.32:8111/get_image_name';
+
+    var post_params        = new Object();
+        post_params.from   = curr_full_image_name;
+        post_params.offset = offset;
+
+    $(this).load(url, post_params, function(responseTxt, statusTxt, xhr) {
+
+        var next = responseTxt.match('next_item: .*');
+            next = stat[0].replace('next_item: ', '');
+
+        if ( next != '' ) { curr_full_image_name = next; }
+    });
+
+    var reviewer = 'onClick="show_it(' + "'" +  curr_full_image_name + "');" + '"';
+
+    $(where).html('<img src="' + images_dir + curr_full_image_name  + '" width=15% height=15% alt="full image here" ' + reviewer + ' />');
+    $(where + '_name').html(image);
+}
+
+function toggle_pwr () {
+
+    var url         = 'http://10.10.1.32:8111/toggle_camera';
+    var post_params = new Object();
+
+    $(this).load(url, post_params, function(responseTxt, statusTxt, xhr) {
+
+        var stat = responseTxt.match('camera status: .*');
+            stat = stat[0].replace('camera status: ', '');
+
+        var errs = responseTxt.match('error count: .*');
+            errs = errs[0].replace('error count: ', '');
+
+        $('#power_btn').html(pwr_status[stat]);
+    });
+}
+
+function check_pwr () {
+
+    var url         = 'http://10.10.1.32:8111/camera_status';
+    var post_params = new Object();
+
+    $(this).load(url, post_params, function(responseTxt, statusTxt, xhr) {
+
+        var stat = responseTxt.match('camera status: .*');
+        var errs = responseTxt.match('error count: .*');
+        stat = stat[0].replace('camera status: ', '');
+        errs = errs[0].replace('error count: ', '');
+
+        $('#power_btn').html(pwr_status[stat]);
+    });
+}
+
+function update_all_settings () {
+}
+
+function show_time(to_update) {
+
+    if ( to_update.length == 0 ) { to_update = 'clock'; }
+    var now = new Date();
+    document.getElementById(to_update).innerHTML = now;
+    return;
+}
+
+</script>
+</BODY>
+</HTML>
